@@ -1,0 +1,40 @@
+= Turntable API for Scala
+
+This is an incomplete version of the Turntable API as developed by Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
+It can (or will eventually) be useful for making bots on Turntable.
+
+Example usage:    
+    
+    import net.liftweb.json.JsonAST._
+    object Main {
+      def main(args: Array[String]) {
+        try {
+          // obtain these values using Alain Gilbert's bookmarklet:
+          // http://alaingilbert.github.com/Turntable-API/bookmarklet.html
+          val auth = "xxxx"
+          val userId = "xxxx"
+          val roomId = "xxxx"
+          val bot = new com.metatrope.turntable.Bot(auth, userId)
+    
+          bot.changeRoom("4df1058699968e6b8a00168d") // go to the turntable.fm/industrial room
+    
+          // let's confirm that we are now, in fact, in the industrial room we tried
+          // to join
+          val room = bot.roomInfo
+          println("Currently in room: " + room.name)
+    
+          // see what they're playing
+          val song = bot.roomInfo.currentSong
+          println("Currently playing: " + song.name + " (" + song.id + ")")
+
+          // add a listener to listen in on chat
+          bot.listen({x=> println(x.name + " = " + x.text)})
+        } catch {
+          case t: Throwable => t.printStackTrace
+        }
+      }
+    }
+
+No documentation yet.  
+
+Feel free to contribute to the project or to insult my Scala code.

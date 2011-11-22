@@ -1,0 +1,5 @@
+src/main/scala/com/metatrope/turntable/bots/TestBot.scala
+target
+.cache
+.target
+project
