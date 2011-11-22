@@ -30,6 +30,9 @@ Example usage:
 
           // add a listener to listen in on chat
           bot.listen({x=> println(x.name + " = " + x.text)})
+          
+          // join the conversation
+          bot.speak("VNV Nation is awesome!")
       }
     }
 
