@@ -1,7 +1,9 @@
 = Turntable API for Scala
 
-This is an incomplete version of the Turntable API as developed by Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
-It can (or will eventually) be useful for making bots on Turntable.
+This is an incomplete version of the Turntable API as originally developed by 
+Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
+
+It can (or, at least, will eventually) be useful for making bots on Turntable.
 
 Example usage:    
     
@@ -12,7 +14,7 @@ Example usage:
           // http://alaingilbert.github.com/Turntable-API/bookmarklet.html
           val auth = "xxxx"
           val userId = "xxxx"
-          val roomId = "xxxx"
+
           val bot = new com.metatrope.turntable.Bot(auth, userId)
     
           bot.changeRoom("4df1058699968e6b8a00168d") // go to the turntable.fm/industrial room
