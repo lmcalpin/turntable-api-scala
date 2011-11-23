@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
 	"junit" % "junit" % "4.8" % "test->default", // For JUnit 4 testing
 	"ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default", // Logging
   	"org.scala-tools.testing" %% "scalacheck" % "1.9" % "test",
+  	"org.codehaus.groovy" % "groovy-all" % "1.7.5" % "runtime", 
   	"net.liftweb" %% "lift-json" % "2.4-M5"
 )

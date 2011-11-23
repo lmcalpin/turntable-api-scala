@@ -3,7 +3,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -12,7 +12,7 @@
  * 3. Neither the name of the PostgreSQL Global Development Group nor the names
  *    of its contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -36,6 +36,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import scala.actors.Actor
 import java.util.concurrent.CountDownLatch
+import com.metatrope.turntable.VoteDirection._
 
 /**
  * The bot requires an authentication key (obtained when logging on to Turntable.fm
@@ -62,6 +63,9 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   var wsc: WebSocketClient = connect
   req("user.authenticate")
 
+  /**
+   * Go to a new room.
+   */
   def changeRoom(roomId: String) = {
     debug("Changed room to " + roomId)
     currentRoom = Some(roomId)
@@ -70,11 +74,14 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     waitForResponse("room.register") { r => }
   }
 
+  /**
+   * Returns information about available rooms.
+   */
   def listRooms(): List[Room] = {
     waitForResponse("room.list_rooms") { r =>
-      val roomJsonArray = (r.json \ "rooms").children
+      val jRooms = (r.json \ "rooms").children
       var rooms = Buffer[Room]()
-      roomJsonArray.foreach(roomJson => {
+      jRooms.foreach(roomJson => {
         val r = new Room(roomJson)
         rooms += r
       })
@@ -82,27 +89,53 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     }
   }
 
+  /**
+   * Returns information about the current room.
+   */
   def roomInfo(): Room = {
     waitForResponse("room.info") { r => new Room(r.json \ "room") }
   }
 
+  /**
+   * Views your profile.
+   */
   def userInfo(): User = {
     waitForResponse("user.info") { r => new User(r.json) }
   }
 
+  /**
+   * Views a specified user's profile.
+   */
   def userInfo(userid: String) = {
     waitForResponse("user.info", ("userid" -> userid)) { r => new User(r.json) }
   }
 
+  /**
+   * Makes your bot chat.
+   */
   def speak(text: String) = {
     req("room.speak", ("text" -> text))
   }
 
+  /**
+   * Changes your name.
+   */
   def modifyName(name: String) = {
     req("user.modify", ("name" -> name))
   }
 
-  def roomNow() = { req("room.now") }
+  /**
+   * Do your democratic duty.  'dir' should be 'up' or 'down'.
+   */
+  def vote(dir: VoteDirection) = {
+    val ri = roomInfo()
+    val vh = hash(currentRoom.get + dir + ri.currentSong.id)
+    val th = hash(scala.math.random.toString)
+    val ph = hash(scala.math.random.toString)
+    req("room.vote", ("val" -> dir.toString) ~ ("vh" -> vh) ~ ("th" -> th) ~ ("ph" -> ph))
+  }
+
+  private def roomNow() = { req("room.now") }
 
   /**
    * Invokes f whenever someone speaks in the chat window.
@@ -115,6 +148,9 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     listeners.put("speak", callbackWrapper)
   }
 
+  /**
+   * Invokes f whenever someone votes a song up or down.
+   */
   def onUpdateVotes(f: VoteCount => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
       val x = new VoteCount(r.json)
@@ -124,19 +160,83 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   /**
-   * Emulate an synchronous request to Turntable.fm.
+   * Invokes f whenever someone votes a song up or down.
+   */
+  def onNewSong(f: Room => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      val x = new Room(r.json)
+      f(x)
+    }
+    listeners.put("newsong", callbackWrapper)
+  }
+
+  /**
+   * Invokes f whenever a Dj steps up.
+   */
+  def onAddDj(f: User => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      val x = new User(r.json)
+      f(x)
+    }
+    listeners.put("add_dj", callbackWrapper)
+  }
+
+  /**
+   * Invokes f whenever a Dj steps down.
+   */
+  def onRemDj(f: User => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      val x = new User(r.json)
+      f(x)
+    }
+    listeners.put("rem_dj", callbackWrapper)
+  }
+
+  /**
+   * Invokes f whenever someone enters the room.
+   */
+  def onUserRegistered(f: User => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      val x = new User(r.json)
+      f(x)
+    }
+    listeners.put("registered", callbackWrapper)
+  }
+
+  /**
+   * Invokes f whenever someone leaves the room.
+   */
+  def onUserDeregistered(f: User => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      val x = new User(r.json)
+      f(x)
+    }
+    listeners.put("deregistered", callbackWrapper)
+  }
+
+  /**
+   * Invokes f whenever someone queues the currently playing
+   * song (this results in a heart floating over their head in
+   * the standard web UI.)
+   */
+  def onSnagged(f: String => Unit) = {
+    val callbackWrapper: Reply => Unit = { r =>
+      r.json \ "userid"
+    }
+    listeners.put("snagged", callbackWrapper)
+  }
+
+  /**
+   * Emulate a synchronous request to Turntable.fm.
    * Waits until we get a response.  Responses are associated with the
    * original sender by the 'msgid' field in the JSON payload.
    */
-  def waitForResponse[A](api: String, params: JObject = null)(f: Reply => A): A = {
-    import scala.actors.Actor._
+  private def waitForResponse[A](api: String, params: JObject = null)(f: Reply => A): A = {
     val cd = new CountDownLatch(1)
     val fut = scala.actors.Futures.future[A] {
-      var msgid: Option[String] = None
       var reply: Option[A] = None
       val callback: Reply => A = { r =>
         val ret = f(r)
-        msgid = Some(r.msgid)
         reply = Some(ret)
         cd.countDown
         ret
@@ -148,6 +248,9 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     fut.apply()
   }
 
+  /**
+   * Send a request to Turntable.fm.  The respone will be processed asynchronously.
+   */
   private def req[T](api: String, params: JObject = null, callback: Option[Reply => T] = None) = {
     val messageId = nextMessageId
     var jsonMessage = ("api" -> api) ~ ("userid" -> userid) ~ ("clientid" -> clientid) ~ ("userauth" -> auth) ~ ("msgid" -> messageId)
@@ -193,11 +296,11 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
         val idx = m indexOf '{'
         debug("Received message: " + m)
         if (idx >= 0) {
-          val message = m substring (idx)
-          if (message != null) {
-            val jsonPayload = JsonParser.parse(message)
-            val reply = new Reply(jsonPayload)
-            val command: String = jsonPayload \\ "command"
+          val jsonStr = m substring (idx)
+          if (jsonStr != null) {
+            val parsedJson = JsonParser.parse(jsonStr)
+            val reply = new Reply(parsedJson)
+            val command: String = parsedJson \\ "command"
             command match {
               case "killdashnine" => {
                 info("Disconnecting because this user has been logged on elsewhere.")

@@ -44,7 +44,17 @@ class Room(json: JValue) extends JsonReader {
   val name: String = json \ "name"
   val description: String = json \ "description"
   val shortcut: String = json \ "shortcut"
-  val currentSong: Song = new Song(json \\ "current_song")
+  val currentSong: Song = new Song(json \ "metadata" \ "current_song")
+  lazy val users: List[User] = readUsers
+  lazy val songlog: List[Song] = readSonglog
+  private def readUsers:List[User] = {
+    val jUsers = json \ "users"
+    jUsers.children.collect { case x => new User(x) }
+  }
+  private def readSonglog:List[Song] = {
+    val jSongs = json \ "metadata" \ "songlog"
+    jSongs.children.collect { case x => new Song(x) }
+  }
 }
 
 class User(json: JValue) extends JsonReader {
@@ -70,13 +80,21 @@ class Chat(json: JValue) extends JsonReader {
 
 class Song(json: JValue) extends JsonReader {
   val id: String = json \ "_id"
-  val album: String = json \ "album"
-  val artist: String = json \ "artist"
-  val coverart: String = json \ "coverart"
-  val name: String = json \ "song"
+  val djid: String = json \ "djid"
+  val album: String = json \ "metadata" \ "album"
+  val artist: String = json \ "metadata" \ "artist"
+  val coverart: String = json \ "metadata" \ "coverart"
+  val name: String = json \ "metadata" \ "song"
 }
 
 class VoteCount(json: JValue) extends JsonReader {
   val upvotes: String = json \ "room" \ "metadata" \ "upvotes"
   val downvotes: String = json \ "room" \ "metadata" \ "downvotes"
+  val listeners: String = json \ "room" \ "metadata" \ "listeners"
+}
+
+object VoteDirection extends Enumeration {
+  type VoteDirection = Value
+  val Up = Value("up")
+  val Down = Value("down")
 }

@@ -1,20 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output=".target/scala-2.9.1/classes" path="src/main/scala"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.scalatest/scalatest_2.9.1/jars/scalatest_2.9.1-1.6.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-0.9.26.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/ch.qos.logback/logback-core/jars/logback-core-0.9.26.jar"/>
-	<classpathentry kind="lib" path="D:/Programming/Projects/Personal/Utils/play/framework/lib/slf4j-api-1.6.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/net.liftweb/lift-json_2.9.1/jars/lift-json_2.9.1-2.4-M5.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/com.thoughtworks.paranamer/paranamer/jars/paranamer-2.3.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.scala-lang/scalap/jars/scalap-2.9.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.sbt/boot/scala-2.9.1/lib/scala-compiler.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.specs2/specs2_2.9.1/jars/specs2_2.9.1-1.6.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.specs2/specs2-scalaz-core_2.9.1/jars/specs2-scalaz-core_2.9.1-6.0.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/junit/junit/jars/junit-4.8.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.scala-tools.testing/scalacheck_2.9.1/jars/scalacheck_2.9.1-1.9.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Lawrence/.ivy2/cache/org.scala-tools.testing/test-interface/jars/test-interface-0.5.jar"/>
-	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="output" path=".target/scala-2.9.1/classes"/>
+  <classpathentry output=".target\scala-2.9.1\classes" path="src\main\scala" kind="src"></classpathentry>
+  <classpathentry output=".target\scala-2.9.1\classes" path="src\main\resources" kind="src"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scalatest\scalatest_2.9.1\jars\scalatest_2.9.1-1.6.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\ch.qos.logback\logback-classic\jars\logback-classic-0.9.26.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\ch.qos.logback\logback-core\jars\logback-core-0.9.26.jar" kind="lib"></classpathentry>
+  <classpathentry path="D:\Programming\Projects\Personal\Utils\play\framework\lib\slf4j-api-1.6.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\net.liftweb\lift-json_2.9.1\jars\lift-json_2.9.1-2.4-M5.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\com.thoughtworks.paranamer\paranamer\jars\paranamer-2.3.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scala-lang\scalap\jars\scalap-2.9.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.sbt\boot\scala-2.9.1\lib\scala-compiler.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.codehaus.groovy\groovy-all\jars\groovy-all-1.7.5.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.specs2\specs2_2.9.1\jars\specs2_2.9.1-1.6.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.specs2\specs2-scalaz-core_2.9.1\jars\specs2-scalaz-core_2.9.1-6.0.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\junit\junit\jars\junit-4.8.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scala-tools.testing\scalacheck_2.9.1\jars\scalacheck_2.9.1-1.9.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scala-tools.testing\test-interface\jars\test-interface-0.5.jar" kind="lib"></classpathentry>
+  <classpathentry path="org.scala-ide.sdt.launching.SCALA_CONTAINER" kind="con"></classpathentry>
+  <classpathentry path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6" kind="con"></classpathentry>
+  <classpathentry path=".target\scala-2.9.1\classes" kind="output"></classpathentry>
 </classpath>
