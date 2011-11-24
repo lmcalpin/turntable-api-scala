@@ -7,7 +7,7 @@ It can (or, at least, will eventually) be useful for making bots on Turntable.
 
 Example usage:    
     
-bc. 
+bc.. 
     import net.liftweb.json.JsonAST._
     object Main {
       def main(args: Array[String]) {
