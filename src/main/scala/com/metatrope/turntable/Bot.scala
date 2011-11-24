@@ -28,15 +28,18 @@
 package com.metatrope.turntable
 
 import java.net.URI
+import java.util.concurrent.CountDownLatch
 import java.util.Date
+
+import scala.actors.Actor
 import scala.actors.Future
 import scala.collection.mutable.Buffer
+
+import com.metatrope.turntable.VoteDirection._
 import com.metatrope.turntable.util._
+
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-import scala.actors.Actor
-import java.util.concurrent.CountDownLatch
-import com.metatrope.turntable.VoteDirection._
 
 /**
  * The bot requires an authentication key (obtained when logging on to Turntable.fm
@@ -164,7 +167,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def onNewSong(f: Room => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
-      val x = new Room(r.json)
+      val x = new Room(r.json \ "room")
       f(x)
     }
     listeners.put("newsong", callbackWrapper)
@@ -175,7 +178,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def onAddDj(f: User => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
-      val x = new User(r.json)
+      val x = new User(r.json \ "user")
       f(x)
     }
     listeners.put("add_dj", callbackWrapper)
@@ -186,7 +189,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def onRemDj(f: User => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
-      val x = new User(r.json)
+      val x = new User(r.json \ "user")
       f(x)
     }
     listeners.put("rem_dj", callbackWrapper)
@@ -197,7 +200,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def onUserRegistered(f: User => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
-      val x = new User(r.json)
+      val x = new User(r.json \ "user")
       f(x)
     }
     listeners.put("registered", callbackWrapper)
@@ -208,7 +211,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def onUserDeregistered(f: User => Unit) = {
     val callbackWrapper: Reply => Unit = { r =>
-      val x = new User(r.json)
+      val x = new User(r.json \ "user")
       f(x)
     }
     listeners.put("deregistered", callbackWrapper)
@@ -260,10 +263,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     val jsonString = compact(render(jsonMessage))
     val turntableMessage = "~m~" + jsonString.length + "~m~" + jsonString
     debug("Sending message #" + messageId + " => " + turntableMessage)
-    callback match {
-      case Some(c) => messages(messageId) = c
-      case _ =>
-    }
+    callback map { c => messages(messageId) = c }
     wsc.send(turntableMessage)
   }
 
@@ -300,21 +300,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
           if (jsonStr != null) {
             val parsedJson = JsonParser.parse(jsonStr)
             val reply = new Reply(parsedJson)
-            val command: String = parsedJson \\ "command"
-            command match {
-              case "killdashnine" => {
-                info("Disconnecting because this user has been logged on elsewhere.")
-                sys.exit(-1)
-              }
-              case _ => {
-                listeners.get(command) map { f => f(reply) }
-              }
-            }
-            val msgid: String = reply.msgid
-            messages.get(msgid) map { callback =>
-              messages.remove(msgid)
-              callback(reply)
-            }
+            MessageProcessor ! reply
           }
         } else {
           // this is probably a heartbeat message
@@ -326,4 +312,40 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     newClient.connect
     newClient
   }
+
+  object MessageProcessor extends Actor {
+    def act() {
+      loop {
+        react {
+          case reply: Reply => {
+            // if we receive a command, see if there is a listener attached to this
+            val command: String = reply.command
+            val msgid: String = reply.msgid
+            command match {
+              case "killdashnine" => {
+                info("Disconnecting because this user has been logged on elsewhere.")
+                sys.exit(-1)
+              }
+              case "None" =>
+              case _ => {
+                debug("MessageProcessor is processing a command: " + command)
+                listeners.get(command) map { f => f(reply) }
+              }
+            }
+            // if there is a msgid, this might be a reply to a message we sent; in that
+            // case, see if there is a callback that requires processing
+            if (!msgid.equalsIgnoreCase("None")) {
+              debug("MessageProcessor is processing a reply to message: " + msgid)
+              messages.get(msgid) map { callback =>
+                messages.remove(msgid)
+                callback(reply)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  MessageProcessor.start
 }

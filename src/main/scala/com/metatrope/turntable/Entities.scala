@@ -3,7 +3,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -12,7 +12,7 @@
  * 3. Neither the name of the PostgreSQL Global Development Group nor the names
  *    of its contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -36,7 +36,8 @@ trait JsonReader {
 }
 
 class Reply(val json: JValue) extends JsonReader {
-  val msgid: String = json \ "msgid"
+  val msgid:String = json \ "msgid"
+  val command:String = json \ "command"
 }
 
 class Room(json: JValue) extends JsonReader {
@@ -47,11 +48,11 @@ class Room(json: JValue) extends JsonReader {
   val currentSong: Song = new Song(json \ "metadata" \ "current_song")
   lazy val users: List[User] = readUsers
   lazy val songlog: List[Song] = readSonglog
-  private def readUsers:List[User] = {
+  private def readUsers: List[User] = {
     val jUsers = json \ "users"
     jUsers.children.collect { case x => new User(x) }
   }
-  private def readSonglog:List[Song] = {
+  private def readSonglog: List[Song] = {
     val jSongs = json \ "metadata" \ "songlog"
     jSongs.children.collect { case x => new Song(x) }
   }
@@ -91,6 +92,10 @@ class VoteCount(json: JValue) extends JsonReader {
   val upvotes: String = json \ "room" \ "metadata" \ "upvotes"
   val downvotes: String = json \ "room" \ "metadata" \ "downvotes"
   val listeners: String = json \ "room" \ "metadata" \ "listeners"
+  val votelog: List[Tuple2[String, String]] = {
+    val votelograw = json \ "room" \ "metadata" \ "votelog"
+    votelograw.children.collect { case x => { (x.apply(0):String,x.apply(1):String) } }
+  }
 }
 
 object VoteDirection extends Enumeration {

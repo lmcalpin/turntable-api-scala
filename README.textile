@@ -1,4 +1,4 @@
-= Turntable API for Scala
+h1. Turntable API for Scala
 
 This is an incomplete version of the Turntable API as originally developed by 
 Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
@@ -7,6 +7,7 @@ It can (or, at least, will eventually) be useful for making bots on Turntable.
 
 Example usage:    
     
+bc. 
     import net.liftweb.json.JsonAST._
     object Main {
       def main(args: Array[String]) {
