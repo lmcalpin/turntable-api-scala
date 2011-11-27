@@ -293,19 +293,23 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     val newClient = new WebSocketClient(new URI(uri))({
       case WebSocket.OnOpen => debug("OnOpen")
       case WebSocket.OnMessage(m) => {
-        val idx = m indexOf '{'
-        debug("Received message: " + m)
-        if (idx >= 0) {
-          val jsonStr = m substring (idx)
-          if (jsonStr != null) {
-            val parsedJson = JsonParser.parse(jsonStr)
-            val reply = new Reply(parsedJson)
-            MessageProcessor ! reply
+        try {
+          val idx = m indexOf '{'
+          debug("Received message: " + m)
+          if (idx >= 0) {
+            val jsonStr = m substring (idx)
+            if (jsonStr != null) {
+              val parsedJson = JsonParser.parse(jsonStr)
+              val reply = new Reply(parsedJson)
+              MessageProcessor ! reply
+            }
+          } else {
+            // this is probably a heartbeat message
+            // let the server know we're still here
+            roomNow
           }
-        } else {
-          // this is probably a heartbeat message
-          // let the server know we're still here
-          roomNow
+        } catch {
+          case t => error(t)
         }
       }
     })
@@ -322,11 +326,11 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
             val command: String = reply.command
             val msgid: String = reply.msgid
             command match {
+              case null =>
               case "killdashnine" => {
                 info("Disconnecting because this user has been logged on elsewhere.")
                 sys.exit(-1)
               }
-              case "None" =>
               case _ => {
                 debug("MessageProcessor is processing a command: " + command)
                 listeners.get(command) map { f => f(reply) }
@@ -334,7 +338,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
             }
             // if there is a msgid, this might be a reply to a message we sent; in that
             // case, see if there is a callback that requires processing
-            if (!msgid.equalsIgnoreCase("None")) {
+            if (msgid != null) {
               debug("MessageProcessor is processing a reply to message: " + msgid)
               messages.get(msgid) map { callback =>
                 messages.remove(msgid)

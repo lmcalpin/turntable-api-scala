@@ -7,4 +7,5 @@ trait Logger {
     
     def debug(s:String) = log.debug(s)
     def info(s:String) = log.info(s)
+    def error(t:Throwable) = log.error(t.getMessage, t)
 }

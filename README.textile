@@ -35,7 +35,7 @@ bc..
           bot.speak("VNV Nation is awesome!")
       }
     }
-
+p. 
 No documentation yet.  
 
 Feel free to contribute to the project or to insult my Scala code.

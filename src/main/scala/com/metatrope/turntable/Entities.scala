@@ -27,12 +27,10 @@
  */
 package com.metatrope.turntable
 
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST._
 
 trait JsonReader {
-  implicit def jv2str(jv: JValue): String = jv.values.toString
+  implicit def jv2str(jv: JValue): String = if (jv == JNothing) null else jv.values.toString
 }
 
 class Reply(val json: JValue) extends JsonReader {

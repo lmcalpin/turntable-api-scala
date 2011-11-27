@@ -75,6 +75,7 @@ trait WebSocket{
   }  
 
   protected def receive(f: PartialFunction[Event, Unit]) : Unit = {
+    try {
     def loop(c:Int): Unit = c match {
       case -1 => sys.error("IO exception")
       case c if (c&0x80)==0 =>
@@ -91,6 +92,10 @@ trait WebSocket{
         }
     }
     loop(in.read)
+    println("Done with loop?!")
+    } catch {
+      case t => t.printStackTrace 
+    }
   }
 
   protected def receiveMessage: String = {
