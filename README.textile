@@ -1,7 +1,6 @@
 h1. Turntable API for Scala
 
-This is an incomplete version of the Turntable API as originally developed by 
-Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
+This is an incomplete version of the Turntable API as originally developed by Alain Gilbert (https://github.com/alaingilbert/Turntable-API).
 
 It can (or, at least, will eventually) be useful for making bots on Turntable.
 
@@ -35,6 +34,7 @@ bc..
           bot.speak("VNV Nation is awesome!")
       }
     }
+
 p. 
 No documentation yet.  
 
