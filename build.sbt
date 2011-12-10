@@ -14,5 +14,10 @@ libraryDependencies ++= Seq(
 	"ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default", // Logging
   	"org.scala-tools.testing" %% "scalacheck" % "1.9" % "test",
   	"org.codehaus.groovy" % "groovy-all" % "1.7.5" % "runtime", 
-  	"net.liftweb" %% "lift-json" % "2.4-M5"
+  	"net.liftweb" %% "lift-json" % "2.4-M5",
+    "se.scalablesolutions.akka" % "akka-actor" % "1.2",
+    "se.scalablesolutions.akka" % "akka-typed-actor" % "1.2",
+    "se.scalablesolutions.akka" % "akka-amqp" % "1.2",
+    "se.scalablesolutions.akka" % "akka-testkit" % "1.2",
+    "se.scalablesolutions.akka" % "akka-actor" % "1.2" 
 )

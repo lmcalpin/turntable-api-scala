@@ -1,4 +1,4 @@
-src/main/scala/com/metatrope/turntable/bots/Test*.scala
+src/main/scala/com/metatrope/turntable/bots/*.scala
 target
 project
 .target

@@ -33,21 +33,28 @@ trait JsonReader {
   implicit def jv2str(jv: JValue): String = if (jv == JNothing) null else jv.values.toString
 }
 
-class Reply(val json: JValue) extends JsonReader {
+class JsonPayload(val json: JValue) extends JsonReader {
   val msgid:String = json \ "msgid"
   val command:String = json \ "command"
 }
 
 class Room(json: JValue) extends JsonReader {
+  // 'json' is a JsonAST$JArray, but we want the first List[JObject] inside it
+  // for some fields, such as name, where we might otherwise find multiple children
+  // with the same name if we start the search from the JsonAST$JArray itself.
+  val firstChildFieldList = json.children(0)
+  val name: String = firstChildFieldList \ "name"
   val now: String = json \ "now"
-  val name: String = json \ "name"
+  val roomid: String = json \ "roomid"
   val description: String = json \ "description"
   val shortcut: String = json \ "shortcut"
   val currentSong: Song = new Song(json \ "metadata" \ "current_song")
   lazy val users: List[User] = readUsers
   lazy val songlog: List[Song] = readSonglog
   private def readUsers: List[User] = {
-    val jUsers = json \ "users"
+    var jUsers = json \ "users"
+    if (jUsers == JNothing)
+      jUsers = json.children(1)
     jUsers.children.collect { case x => new User(x) }
   }
   private def readSonglog: List[Song] = {

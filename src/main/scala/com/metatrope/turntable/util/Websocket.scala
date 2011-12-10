@@ -28,13 +28,13 @@ modification, are permitted provided that the following conditions are met:
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import java.io.{InputStream, OutputStream}
+import java.io.{ InputStream, OutputStream }
 
-trait WebSocket{
+trait WebSocket {
   import WebSocket._
 
-  protected var in:InputStream = _
-  protected var out:OutputStream = _
+  protected var in: InputStream = _
+  protected var out: OutputStream = _
   protected var connected = false
 
   private val pattern = "(.+): (.+)".r
@@ -42,19 +42,19 @@ trait WebSocket{
     def oneLine = {
       val buf = new StringBuilder
       def loop(c: Int): String = {
-        if(c==0x0d){in.read; buf.toString}
-        else { buf += c.asInstanceOf[Char]; loop(in.read)}
+        if (c == 0x0d) { in.read; buf.toString }
+        else { buf += c.asInstanceOf[Char]; loop(in.read) }
       }
       loop(in.read)
     }
-    val lines = for(l <- Stream continually (oneLine) takeWhile (_ != "")) yield l
-    val headers = lines.tail.foldLeft(Map.empty[String,String]){ 
-      case (m, pattern(k,v)) => m + (k -> v)
-    } 
+    val lines = for (l <- Stream continually (oneLine) takeWhile (_ != "")) yield l
+    val headers = lines.tail.foldLeft(Map.empty[String, String]) {
+      case (m, pattern(k, v)) => m + (k -> v)
+    }
     (lines(0), headers)
   }
 
-  protected def digest(key1:String, key2:String, key3:Array[Byte])={
+  protected def digest(key1: String, key2: String, key3: Array[Byte]) = {
     import java.security.MessageDigest
     val digest = MessageDigest.getInstance("MD5")
     digest.update(key2Int(key1))
@@ -64,56 +64,55 @@ trait WebSocket{
   }
 
   private def key2Int(key: String): Array[Byte] = {
-    val a = BigInt(key.toList.collect{case c if('0'<=c && c<='9')  => c}.mkString)
-    val b = key.toList.filter( _ == ' ').length
+    val a = BigInt(key.toList.collect { case c if ('0' <= c && c <= '9') => c }.mkString)
+    val b = key.toList.filter(_ == ' ').length
     val i = (a / b).toInt
     val out = new java.io.ByteArrayOutputStream
     new java.io.DataOutputStream(out) match {
       case dos => dos.writeInt(i); dos.close
     }
     out.toByteArray
-  }  
+  }
 
-  protected def receive(f: PartialFunction[Event, Unit]) : Unit = {
-    try {
-    def loop(c:Int): Unit = c match {
+  protected def receive(f: PartialFunction[Event, Unit]): Unit = {
+    def loop(c: Int): Unit = c match {
       case -1 => sys.error("IO exception")
-      case c if (c&0x80)==0 =>
+      case c if (c & 0x80) == 0 =>
         val message = OnMessage(receiveMessage)
-        if(f.isDefinedAt(message)) f(message)
+        if (f.isDefinedAt(message)) f(message)
         loop(in.read)
       case c =>
         val data = receiveData
-        if(c== 0xff && data.length==0){
+        if (c == 0xff && data.length == 0) {
           // closing 
-        }
-        else{
+        } else {
           loop(in.read)
         }
     }
-    loop(in.read)
-    println("Done with loop?!")
+    try {
+      loop(in.read)
     } catch {
-      case t => t.printStackTrace 
+      case t => t.printStackTrace
     }
+    println("Done with loop?!")
   }
 
   protected def receiveMessage: String = {
     val buf = new StringBuilder
-    def loop(c:Int): String = {
-      if((c&0xff) == 0xff) buf.toString
+    def loop(c: Int): String = {
+      if ((c & 0xff) == 0xff) buf.toString
       else { buf += c.asInstanceOf[Char]; loop(in.read) }
     }
     loop(in.read)
   }
 
   protected def receiveData: Array[Byte] = {
-    def loop(c: Int, length:Int): Int = c match {
+    def loop(c: Int, length: Int): Int = c match {
       case -1 => sys.error("IO exception")
-      case c => 
-        length*128 + (c&0x7f) match {
-          case l => 
-            if((c&0x80) == 0x80) loop(in.read, l) else l
+      case c =>
+        length * 128 + (c & 0x7f) match {
+          case l =>
+            if ((c & 0x80) == 0x80) loop(in.read, l) else l
         }
     }
     val length = loop(in.read, 0)
@@ -121,7 +120,7 @@ trait WebSocket{
     Array.fill(length)(read)
   }
 
-  def send(data:String) = {
+  def send(data: String) = {
     out.write(0)
     out.write(data.getBytes("UTF-8"))
     out.write(0xff)
@@ -134,19 +133,19 @@ trait WebSocket{
     out.flush
   }
 
-  protected def dump(buf:Array[Byte])= {
-    buf.foreach { c => print(Integer.toHexString(c&0xff)+":") }
+  protected def dump(buf: Array[Byte]) = {
+    buf.foreach { c => print(Integer.toHexString(c & 0xff) + ":") }
     println("")
   }
 
   def read: Byte = {
-    in.read match{
+    in.read match {
       case -1 => sys.error("IO exception")
-      case c => (c&0xff).asInstanceOf[Byte]
+      case c => (c & 0xff).asInstanceOf[Byte]
     }
   }
 
-   /*
+  /*
    val key1 = "P388 O503D&ul7 {K%gX( %7  15"
    val key2 = "1 N ?|k UT0or 3o  4 I97N 5-S3O 31"
    val key3 = List(0x47, 0x30, 0x22, 0x2D,
@@ -157,9 +156,9 @@ trait WebSocket{
    */
 }
 
-object WebSocket{
+object WebSocket {
   abstract class Event
-  case class OnMessage(message:String) extends Event
+  case class OnMessage(message: String) extends Event
   // case class onMessage(message:Array[Byte]) extends Event
   case object OnOpen extends Event
   case object OnError extends Event

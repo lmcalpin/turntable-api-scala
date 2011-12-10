@@ -31,8 +31,9 @@ import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.Date
 
-import scala.actors.Actor
-import scala.actors.Future
+import akka.actor.Actor._
+import akka.actor.Actor
+import akka.routing.Routing._
 import scala.collection.mutable.Buffer
 
 import com.metatrope.turntable.VoteDirection._
@@ -57,15 +58,19 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
 
   private var msgId = 0
 
-  val messages = scala.collection.mutable.Map[String, Reply => Any]()
-  val listeners = scala.collection.mutable.Map[String, Reply => Unit]()
+  val messages = scala.collection.mutable.Map[String, JsonPayload => Any]()
+  val commandListeners = scala.collection.mutable.Map[String, JsonPayload => Unit]()
+  var readyListener: Option[() => Unit] = None
 
   var currentRoom: Option[String] = None
   val clientid = new Date().getTime + "-0.59633534294921572"
 
-  var wsc: WebSocketClient = connect
-  req("user.authenticate")
+  // main message processing actor
+  val messageProcessor = actorOf(new MessageProcessor).start()
 
+  // start connection
+  var wsc: WebSocketClient = connect
+ 
   /**
    * Go to a new room.
    */
@@ -144,77 +149,77 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    * Invokes f whenever someone speaks in the chat window.
    */
   def listen(f: Chat => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new Chat(r.json)
       f(x)
     }
-    listeners.put("speak", callbackWrapper)
+    commandListeners.put("speak", callbackWrapper)
   }
 
   /**
    * Invokes f whenever someone votes a song up or down.
    */
   def onUpdateVotes(f: VoteCount => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new VoteCount(r.json)
       f(x)
     }
-    listeners.put("update_votes", callbackWrapper)
+    commandListeners.put("update_votes", callbackWrapper)
   }
 
   /**
    * Invokes f whenever someone votes a song up or down.
    */
   def onNewSong(f: Room => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new Room(r.json \ "room")
       f(x)
     }
-    listeners.put("newsong", callbackWrapper)
+    commandListeners.put("newsong", callbackWrapper)
   }
 
   /**
    * Invokes f whenever a Dj steps up.
    */
   def onAddDj(f: User => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new User(r.json \ "user")
       f(x)
     }
-    listeners.put("add_dj", callbackWrapper)
+    commandListeners.put("add_dj", callbackWrapper)
   }
 
   /**
    * Invokes f whenever a Dj steps down.
    */
   def onRemDj(f: User => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new User(r.json \ "user")
       f(x)
     }
-    listeners.put("rem_dj", callbackWrapper)
+    commandListeners.put("rem_dj", callbackWrapper)
   }
 
   /**
    * Invokes f whenever someone enters the room.
    */
   def onUserRegistered(f: User => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new User(r.json \ "user")
       f(x)
     }
-    listeners.put("registered", callbackWrapper)
+    commandListeners.put("registered", callbackWrapper)
   }
 
   /**
    * Invokes f whenever someone leaves the room.
    */
   def onUserDeregistered(f: User => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       val x = new User(r.json \ "user")
       f(x)
     }
-    listeners.put("deregistered", callbackWrapper)
+    commandListeners.put("deregistered", callbackWrapper)
   }
 
   /**
@@ -223,10 +228,17 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    * the standard web UI.)
    */
   def onSnagged(f: String => Unit) = {
-    val callbackWrapper: Reply => Unit = { r =>
+    val callbackWrapper: JsonPayload => Unit = { r =>
       r.json \ "userid"
     }
-    listeners.put("snagged", callbackWrapper)
+    commandListeners.put("snagged", callbackWrapper)
+  }
+
+  /**
+   * Invoked after we are authenticated.
+   */
+  def onReady(f: () => Unit) = {
+    readyListener = Some(f)
   }
 
   /**
@@ -234,11 +246,11 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    * Waits until we get a response.  Responses are associated with the
    * original sender by the 'msgid' field in the JSON payload.
    */
-  private def waitForResponse[A](api: String, params: JObject = null)(f: Reply => A): A = {
+  private def waitForResponse[A](api: String, params: JObject = null)(f: JsonPayload => A): A = {
     val cd = new CountDownLatch(1)
     val fut = scala.actors.Futures.future[A] {
       var reply: Option[A] = None
-      val callback: Reply => A = { r =>
+      val callback: JsonPayload => A = { r =>
         val ret = f(r)
         reply = Some(ret)
         cd.countDown
@@ -254,7 +266,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   /**
    * Send a request to Turntable.fm.  The respone will be processed asynchronously.
    */
-  private def req[T](api: String, params: JObject = null, callback: Option[Reply => T] = None) = {
+  private def req[T](api: String, params: JObject = null, callback: Option[JsonPayload => T] = None) = {
     val messageId = nextMessageId
     var jsonMessage = ("api" -> api) ~ ("userid" -> userid) ~ ("clientid" -> clientid) ~ ("userauth" -> auth) ~ ("msgid" -> messageId)
     currentRoom map { r => jsonMessage = jsonMessage ~ ("roomid" -> r) }
@@ -300,13 +312,17 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
             val jsonStr = m substring (idx)
             if (jsonStr != null) {
               val parsedJson = JsonParser.parse(jsonStr)
-              val reply = new Reply(parsedJson)
-              MessageProcessor ! reply
+              val reply = new JsonPayload(parsedJson)
+              messageProcessor ! reply
             }
           } else {
-            // this is probably a heartbeat message
-            // let the server know we're still here
-            roomNow
+            if (m == "~m~10~m~no_session") {
+              actorOf(new BotProcessor).start() ! Authenticate
+            } else {
+              // this is probably a heartbeat message
+              // let the server know we're still here
+              roomNow
+            }
           }
         } catch {
           case t => error(t)
@@ -317,39 +333,55 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     newClient
   }
 
-  object MessageProcessor extends Actor {
-    def act() {
-      loop {
-        react {
-          case reply: Reply => {
-            // if we receive a command, see if there is a listener attached to this
-            val command: String = reply.command
-            val msgid: String = reply.msgid
-            command match {
-              case null =>
-              case "killdashnine" => {
-                info("Disconnecting because this user has been logged on elsewhere.")
-                sys.exit(-1)
-              }
-              case _ => {
-                debug("MessageProcessor is processing a command: " + command)
-                listeners.get(command) map { f => f(reply) }
-              }
-            }
-            // if there is a msgid, this might be a reply to a message we sent; in that
-            // case, see if there is a callback that requires processing
-            if (msgid != null) {
-              debug("MessageProcessor is processing a reply to message: " + msgid)
-              messages.get(msgid) map { callback =>
-                messages.remove(msgid)
-                callback(reply)
-              }
-            }
+  case class Authenticate
+  case class Reply(message: JsonPayload)
+  case class Command(message: JsonPayload)
+  case class Ready
+
+  class MessageProcessor extends Actor {
+    def receive = {
+      case reply: JsonPayload => {
+        val command: String = reply.command
+        val msgid: String = reply.msgid
+        command match {
+          case null =>
+          case "killdashnine" => {
+            info("Disconnecting because this user has been logged on elsewhere.")
+            sys.exit(-1)
+          }
+          case _ => {
+            // see if we registered a listener callback for this particular command
+            commandListeners.get(command) map { f => actorOf(new BotProcessor).start() ! Command(reply) }
           }
         }
+        // if there is a msgid, this might be a reply to a message we sent using
+        // the method waitForResponse or by providing a custom callback to the req
+        // method.
+        messages.get(msgid) map { f => actorOf(new BotProcessor).start() ! Reply(reply) }
       }
     }
   }
 
-  MessageProcessor.start
+  class BotProcessor extends Actor {
+    def receive = {
+      case Authenticate => {
+        waitForResponse("user.authenticate") { r =>
+          actorOf(new BotProcessor).start() ! Ready
+        }
+      }
+      case Ready => {
+        readyListener.map { f => f() }
+      }
+      case c: Command => {
+        val message = c.message
+        val command: String = message.command
+        commandListeners.get(command) map { f => f(message) }
+      }
+      case m: Reply => {
+        val message = m.message
+        val msgid: String = message.msgid
+        messages.get(msgid) map { f => messages.remove(msgid); f(message) }
+      }
+    }
+  }
 }

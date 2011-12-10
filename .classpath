@@ -9,6 +9,19 @@
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\com.thoughtworks.paranamer\paranamer\jars\paranamer-2.3.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scala-lang\scalap\jars\scalap-2.9.1.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.sbt\boot\scala-2.9.1\lib\scala-compiler.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\se.scalablesolutions.akka\akka-actor\jars\akka-actor-1.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\se.scalablesolutions.akka\akka-typed-actor\jars\akka-typed-actor-1.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.guiceyfruit\guice-all\jars\guice-all-2.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.codehaus.aspectwerkz\aspectwerkz\jars\aspectwerkz-2.2.3.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\aopalliance\aopalliance\jars\aopalliance-1.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\se.scalablesolutions.akka\akka-stm\jars\akka-stm-1.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.multiverse\multiverse-alpha\jars\multiverse-alpha-0.6.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\se.scalablesolutions.akka\akka-amqp\jars\akka-amqp-1.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="D:\Programming\Projects\Personal\Utils\play\framework\lib\commons-io-2.0.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\com.google.protobuf\protobuf-java\jars\protobuf-java-2.4.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\com.rabbitmq\amqp-client\jars\amqp-client-2.5.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\commons-cli\commons-cli\jars\commons-cli-1.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="C:\Users\Lawrence\.ivy2\cache\se.scalablesolutions.akka\akka-testkit\jars\akka-testkit-1.2.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.codehaus.groovy\groovy-all\jars\groovy-all-1.7.5.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.specs2\specs2_2.9.1\jars\specs2_2.9.1-1.6.1.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.specs2\specs2-scalaz-core_2.9.1\jars\specs2-scalaz-core_2.9.1-6.0.1.jar" kind="lib"></classpathentry>

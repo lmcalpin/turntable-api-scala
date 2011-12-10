@@ -29,59 +29,57 @@ modification, are permitted provided that the following conditions are met:
 */
 
 import java.net.Socket
-import java.io.{InputStream, OutputStream}
+import java.io.{ InputStream, OutputStream }
 import java.net.URI
 
 import WebSocket._
 
-class WebSocketClient(uri: URI)
-                     (f: PartialFunction[Event, Unit]) extends WebSocket {
+class WebSocketClient(uri: URI)(f: PartialFunction[Event, Unit]) extends WebSocket {
   import WebSocketClient._
- 
-  val path = (uri.getPath match{
+
+  val path = (uri.getPath match {
     case "" => "/"
     case p => p
-  }) + Option(uri.getQuery).map("?"+_).getOrElse("")
+  }) + Option(uri.getQuery).map("?" + _).getOrElse("")
 
   val default_port = uri.getScheme match {
     case "ws" => 80
     case "wss" => 443
-    case _ => sys.error("unknown scheme: "+uri)
-  } 
+    case _ => sys.error("unknown scheme: " + uri)
+  }
 
-  val port = uri.getPort match{
+  val port = uri.getPort match {
     case -1 => default_port
     case p => p
   }
 
   val host = {
-    uri.getHost.toLowerCase + (port match{
+    uri.getHost.toLowerCase + (port match {
       case `default_port` => ""
-      case p => ":"+p
+      case p => ":" + p
     })
   }
 
-  val origin = "http://"+uri.getHost.toLowerCase
+  val origin = "http://" + uri.getHost.toLowerCase
 
-  def connect(): Boolean = { 
+  def connect(): Boolean = {
     val s = {
-      if(uri.getScheme == "wss"){
+      if (uri.getScheme == "wss") {
         import javax.net.SocketFactory
         import javax.net.ssl.SSLSocketFactory
         val factory = SSLSocketFactory.getDefault
-    factory.createSocket(uri.getHost, port)
-      }
-      else{
+        factory.createSocket(uri.getHost, port)
+      } else {
         new Socket(uri.getHost, port)
-      } 
+      }
     }
 
     in = s.getInputStream
     out = s.getOutputStream
 
-    if(handshake()){
+    if (handshake()) {
       import scala.concurrent.ops.spawn
-      spawn{
+      spawn {
         receive(f)
       }
     }
@@ -106,33 +104,33 @@ class WebSocketClient(uri: URI)
     val reply_digest = new Array[Byte](16)
     in.read(reply_digest)
 
-    if(headers("Sec-WebSocket-Origin") != origin){
-      println("warning: "+headers("Sec-WebSocket-Origin")+" != "+origin)
+    if (headers("Sec-WebSocket-Origin") != origin) {
+      println("warning: " + headers("Sec-WebSocket-Origin") + " != " + origin)
     }
 
     //connected = (reply_digest.deep == digest(key1, key2, key3).deep)
     connected = java.util.Arrays.equals(reply_digest, digest(key1, key2, key3))
 
-    if(!connected){
+    if (!connected) {
       println("warning: wrong digest")
     }
 
-    if(connected && f.isDefinedAt(OnOpen)) f(OnOpen)
+    if (connected && f.isDefinedAt(OnOpen)) f(OnOpen)
 
     connected
   }
 }
 
 object WebSocketClient {
-  val template = 
+  val template =
     "GET %s HTTP/1.1\r\n" +
-    "Upgrade: WebSocket\r\n" +
-    "Connection: Upgrade\r\n" +
-    "Host: %s\r\n" +
-    "Origin: %s\r\n" +
-    "Sec-WebSocket-Key1: %s\r\n" +
-    "Sec-WebSocket-Key2: %s\r\n" +
-    "\r\n"
+      "Upgrade: WebSocket\r\n" +
+      "Connection: Upgrade\r\n" +
+      "Host: %s\r\n" +
+      "Origin: %s\r\n" +
+      "Sec-WebSocket-Key1: %s\r\n" +
+      "Sec-WebSocket-Key2: %s\r\n" +
+      "\r\n"
 
   private val characters = ((0x21 to 0x2F) toList) ::: ((0x3A to 0x7E) toList) map {
     _.asInstanceOf[Char]
@@ -140,8 +138,8 @@ object WebSocketClient {
 
   def genKey = {
     import scala.util.Random.nextInt
-    val spaces = nextInt(12)+1
-    val max = ((BigInt("4294967295")  / spaces).toInt) & 0x7FFFFFFF
+    val spaces = nextInt(12) + 1
+    val max = ((BigInt("4294967295") / spaces).toInt) & 0x7FFFFFFF
     val number = nextInt(max)
     val product = BigInt(number) * spaces
     def nextChar = {
@@ -151,17 +149,17 @@ object WebSocketClient {
     var key = product.toString
 
     key = (0 to nextInt(12)).foldLeft(key) {
-      case (key, _) => 
+      case (key, _) =>
         key splitAt nextInt(key.length) match {
-          case (a,b) => a+nextChar+b
+          case (a, b) => a + nextChar + b
         }
-      }
+    }
 
     key = (0 to spaces).foldLeft(key) {
-      case (key, _) => 
-        key splitAt nextInt(key.length-1)+1 match {
-         case (a,b) => a+' '+b
-      }
+      case (key, _) =>
+        key splitAt nextInt(key.length - 1) + 1 match {
+          case (a, b) => a + ' ' + b
+        }
     }
     key
   }
