@@ -2,7 +2,7 @@ h1. Turntable API for Scala
 
 This is an incomplete version of the Turntable API as originally developed by "Alain Gilbert":https://github.com/alaingilbert/Turntable-API.
 
-It can (or, at least, will eventually) be useful for making bots on Turntable.
+It can be useful for making bots on Turntable.
 
 Example usage:    
     
@@ -16,26 +16,31 @@ bc..
           val userId = "xxxx"
           val bot = new com.metatrope.turntable.Bot(auth, userId)
   
-          bot.changeRoom("4df1058699968e6b8a00168d") // go to the turntable.fm/industrial room
-  
-          // let's confirm that we are now, in fact, in the industrial room we tried
-          // to join
-          val room = bot.roomInfo
-          println("Currently in room: " + room.name)
-  
-          // see what they're playing
-          val song = bot.roomInfo.currentSong
-          println("Currently playing: " + song.name + " (" + song.id + ")")
- 
-          // add a listener to listen in on chat
-          bot.listen({x=> println(x.name + " = " + x.text)})
-          
-          // join the conversation
-          bot.speak("VNV Nation is awesome!")
+          bot.onReady({ () => 
+              bot.changeRoom("4df1058699968e6b8a00168d") // go to the turntable.fm/industrial room
+      
+              // let's confirm that we are now, in fact, in the industrial room we tried
+              // to join
+              val room = bot.roomInfo
+              println("Currently in room: " + room.name)
+      
+              // see what they're playing
+              val song = bot.roomInfo.currentSong
+              println("Currently playing: " + song.name + " (" + song.id + ")")
+     
+              // add a listener to listen in on chat
+              bot.listen({x=> println(x.name + " = " + x.text)})
+              
+              // join the conversation
+              bot.speak("VNV Nation is awesome!")
+          }
       }
     }
 
 p. 
 No documentation yet.  
 
+lib/WebSocket.jar comes from "TooTallNate's WebSocket project":https://github.com/TooTallNate/Java-WebSocket/
+
 Feel free to contribute to the project or to insult my Scala code.
+

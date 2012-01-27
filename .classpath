@@ -1,6 +1,7 @@
 <classpath>
   <classpathentry output=".target\scala-2.9.1\classes" path="src\main\scala" kind="src"></classpathentry>
   <classpathentry output=".target\scala-2.9.1\classes" path="src\main\resources" kind="src"></classpathentry>
+  <classpathentry path="D:\Programming\Projects\Personal\Utils\turntable-api-scala\lib\WebSocket.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\org.scalatest\scalatest_2.9.1\jars\scalatest_2.9.1-1.6.1.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\ch.qos.logback\logback-classic\jars\logback-classic-0.9.26.jar" kind="lib"></classpathentry>
   <classpathentry path="C:\Users\Lawrence\.ivy2\cache\ch.qos.logback\logback-core\jars\logback-core-0.9.26.jar" kind="lib"></classpathentry>

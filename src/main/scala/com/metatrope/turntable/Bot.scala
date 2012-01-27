@@ -30,17 +30,17 @@ package com.metatrope.turntable
 import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.Date
-
 import akka.actor.Actor._
 import akka.actor.Actor
 import akka.routing.Routing._
 import scala.collection.mutable.Buffer
-
 import com.metatrope.turntable.VoteDirection._
 import com.metatrope.turntable.util._
-
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
+import net.tootallnate.websocket.WebSocketClient
+import net.tootallnate.websocket.WebSocket
+import java.util.concurrent.locks.LockSupport
 
 /**
  * The bot requires an authentication key (obtained when logging on to Turntable.fm
@@ -116,6 +116,20 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def userInfo(userid: String) = {
     waitForResponse("user.info", ("userid" -> userid)) { r => new User(r.json) }
+  }
+
+  /**
+   * Become a fan of a specified user.
+   */
+  def becomeFan(userid: String) = {
+    waitForResponse("user.become_fan", ("userid" -> userid)) { r => new User(r.json) }
+  }
+
+  /**
+   * Stop being a fan of a specified user.
+   */
+  def removeFan(userid: String) = {
+    waitForResponse("user.remove_fan", ("userid" -> userid)) { r => new User(r.json) }
   }
 
   /**
@@ -278,6 +292,12 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     callback map { c => messages(messageId) = c }
     wsc.send(turntableMessage)
   }
+  
+  private def heartbeat(msg:String) = {
+    val messageId = nextMessageId
+    debug("Sending heartbeat #" + messageId + " => " + msg)
+    wsc.send("~m~" + msg.length() + "~m~" + msg);
+  }
 
   private def hash(text: String) = {
     val md = java.security.MessageDigest.getInstance("SHA-1")
@@ -302,9 +322,13 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   private def connect: WebSocketClient = {
     val selectedChatserver = chatserver(currentRoom.getOrElse(scala.math.random.toString))
     val uri = "ws://" + selectedChatserver + ":80/socket.io/websocket"
-    val newClient = new WebSocketClient(new URI(uri))({
-      case WebSocket.OnOpen => debug("OnOpen")
-      case WebSocket.OnMessage(m) => {
+    val newClient = new WebSocketClient(new URI(uri)){
+      var isOpen:Boolean = false
+      def onOpen = {
+        isOpen = true
+        debug("OnOpen")
+      }
+      def onMessage(m:String) = {
         try {
           val idx = m indexOf '{'
           debug("Received message: " + m)
@@ -320,16 +344,24 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
               actorOf(new BotProcessor).start() ! Authenticate
             } else {
               // this is probably a heartbeat message
-              // let the server know we're still here
-              roomNow
+              val heartbeatRegex = "~m~[0-9]+~m~(~h~[0-9]+)".r
+              try {
+                  val heartbeatRegex(id) = m
+                  heartbeat(id)
+              } catch {
+                case e:MatchError => debug("Unexpected message: " + m)
+              }
             }
           }
         } catch {
           case t => error(t)
         }
       }
-    })
+      def onError(e:Exception) = error(e)
+      def onClose = debug("onClose")
+    }
     newClient.connect
+    while (!newClient.isOpen) LockSupport.parkNanos(100)
     newClient
   }
 
