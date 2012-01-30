@@ -39,11 +39,10 @@ class JsonPayload(val json: JValue) extends JsonReader {
 }
 
 class Room(json: JValue) extends JsonReader {
-  // 'json' is a JsonAST$JArray, but we want the first List[JObject] inside it
-  // for some fields, such as name, where we might otherwise find multiple children
-  // with the same name if we start the search from the JsonAST$JArray itself.
-  val firstChildFieldList = json.children(0)
-  val name: String = firstChildFieldList \ "name"
+  val name:String = json \ "name" match {
+    case x:JArray => x.children(0).asInstanceOf[JField].value
+    case x => x
+  }
   val now: String = json \ "now"
   val roomid: String = json \ "roomid"
   val description: String = json \ "description"

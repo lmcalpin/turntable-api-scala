@@ -172,10 +172,31 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   /**
-   * Dj! Dj!
+   * No more Dj!
    */
   def stepDown() = {
     req("room.rem_dj", ("roomid" -> currentRoom.get))
+  }
+
+  /**
+   * Put the boot to the target user's derriere.
+   */
+  def boot(userId:String, reason:String = "Being lame") = {
+    req("room.boot_user", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId) ~ ("reason" -> reason))
+  }
+
+  /**
+   * Give moderator privileges to a target user.
+   */
+  def addModerator(userId:String) = {
+    req("room.add_moderator", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId))
+  }
+
+  /**
+   * Remove moderator privileges from a target user.
+   */
+  def remModerator(userId:String) = {
+    req("room.rem_moderator", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId))
   }
 
   /**
