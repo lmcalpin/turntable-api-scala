@@ -28,6 +28,7 @@
 package com.metatrope.turntable
 
 import java.net.URI
+
 import java.util.concurrent.CountDownLatch
 import java.util.Date
 import akka.actor.Actor._
@@ -41,6 +42,7 @@ import net.liftweb.json._
 import net.tootallnate.websocket.WebSocketClient
 import net.tootallnate.websocket.WebSocket
 import java.util.concurrent.locks.LockSupport
+import com.metatrope.turntable.Laptop._
 
 /**
  * The bot requires an authentication key (obtained when logging on to Turntable.fm
@@ -49,7 +51,7 @@ import java.util.concurrent.locks.LockSupport
  * http://alaingilbert.github.com/Turntable-API/bookmarklet.html
  *
  * This class is based on the work done by Alain Gilbert:
- * https://github.com/alaingilbert/
+ * https://github.com/alaingilbert/Turntable-API
  */
 class Bot(auth: String, userid: String) extends Logger with JsonReader {
   """ Beep beep bzzt whirrr. """
@@ -71,6 +73,8 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   // start connection
   var wsc: WebSocketClient = connect
  
+  // START OF BOT ACTION METHODS
+  
   /**
    * Go to a new room.
    */
@@ -140,10 +144,59 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   /**
-   * Changes your name.
+   * Changes your bot's name.
    */
   def modifyName(name: String) = {
     req("user.modify", ("name" -> name))
+  }
+
+  /**
+   * Changes your bot's avatar.
+   */
+  def modifyAvatar(avatarId: String) = {
+    req("user.set_avatar", ("avatarid" -> avatarId))
+  }
+
+  /**
+   * Changes your name.
+   */
+  def modifyLaptop(laptop: Laptop) = {
+    req("user.modify", ("laptop" -> laptop.toString))
+  }
+
+  /**
+   * Dj! Dj!
+   */
+  def dj() = {
+    req("room.add_dj", ("roomid" -> currentRoom.get))
+  }
+
+  /**
+   * Dj! Dj!
+   */
+  def stepDown() = {
+    req("room.rem_dj", ("roomid" -> currentRoom.get))
+  }
+
+  /**
+   * Adds a song to the bot's playlist.
+   */
+  def playlistAdd(name: String = "default", songId: String, index:Int = 0) = {
+    req("playlist.add", ("playlist_name" -> name) ~ ("song_dict" -> songId) ~ ("index" -> index))
+  }
+
+  /**
+   * Removes a song from the bot's playlist.
+   */
+  def playlistRemove(name: String = "default", index:Int = 0) = {
+    req("playlist.remove", ("playlist_name" -> name) ~ ("index" -> index))
+  }
+
+  /**
+   * Removes a song from the bot's playlist.
+   */
+  def playlistReorder(indexFrom:Int, indexTo:Int) = {
+    req("playlist.reorder", ("index_from" -> indexFrom) ~ ("index_to" -> indexTo))
   }
 
   /**
@@ -158,6 +211,10 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   private def roomNow() = { req("room.now") }
+  
+  // END OF BOT ACTIONS METHODS
+
+  // START OF EVENT LISTENERS
 
   /**
    * Invokes f whenever someone speaks in the chat window.
@@ -254,6 +311,8 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   def onReady(f: () => Unit) = {
     readyListener = Some(f)
   }
+
+  // END OF EVENT LISTENERS
 
   /**
    * Emulate a synchronous request to Turntable.fm.

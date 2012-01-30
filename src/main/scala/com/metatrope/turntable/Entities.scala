@@ -108,3 +108,12 @@ object VoteDirection extends Enumeration {
   val Up = Value("up")
   val Down = Value("down")
 }
+
+object Laptop extends Enumeration {
+  type Laptop = Value
+  val Linux = Value("linux")
+  val Mac = Value("mac")
+  val PC = Value("pc")
+  val Chrome = Value("chrome")
+  val IPhone = Value("iphone")
+}
