@@ -62,7 +62,6 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
 
   val messages = scala.collection.mutable.Map[String, JsonPayload => Any]()
   val commandListeners = scala.collection.mutable.Map[String, JsonPayload => Unit]()
-  var readyListener: Option[() => Unit] = None
 
   var currentRoom: Option[String] = None
   val clientid = new Date().getTime + "-0.59633534294921572"
@@ -79,7 +78,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    * Go to a new room.
    */
   def changeRoom(roomId: String) = {
-    debug("Changed room to " + roomId)
+    debug("Changing room to " + roomId)
     currentRoom = Some(roomId)
     wsc.close
     wsc = connect
@@ -326,13 +325,6 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     commandListeners.put("snagged", callbackWrapper)
   }
 
-  /**
-   * Invoked after we are authenticated.
-   */
-  def onReady(f: () => Unit) = {
-    readyListener = Some(f)
-  }
-
   // END OF EVENT LISTENERS
 
   /**
@@ -448,7 +440,6 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   case class Authenticate
   case class Reply(message: JsonPayload)
   case class Command(message: JsonPayload)
-  case class Ready
 
   class MessageProcessor extends Actor {
     def receive = {
@@ -478,11 +469,8 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     def receive = {
       case Authenticate => {
         waitForResponse("user.authenticate") { r =>
-          actorOf(new BotProcessor).start() ! Ready
+          debug("user is authenticated")
         }
-      }
-      case Ready => {
-        readyListener.map { f => f() }
       }
       case c: Command => {
         val message = c.message
