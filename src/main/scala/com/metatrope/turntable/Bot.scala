@@ -323,7 +323,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   // END OF EVENT LISTENERS
 
   /**
-   * Emulate a synchronous request to Turntable.fm.
+   * Make a synchronous request to Turntable.fm.
    * Waits until we get a response.  Responses are associated with the
    * original sender by the 'msgid' field in the JSON payload.
    */
@@ -345,14 +345,13 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   /**
-   * Send a request to Turntable.fm.  The respone will be processed asynchronously.
+   * Send an asynchronous request to Turntable.fm.
    */
-  private def req[T](api: String, params: JObject = null, callback: Option[JsonPayload => T] = None) = {
+  private def req[T](api: String, params: Option[JObject] = None, callback: Option[JsonPayload => T] = None) = {
     val messageId = nextMessageId
     var jsonMessage = ("api" -> api) ~ ("userid" -> userid) ~ ("clientid" -> clientid) ~ ("userauth" -> auth) ~ ("msgid" -> messageId)
     currentRoom map { r => jsonMessage = jsonMessage ~ ("roomid" -> r) }
-    if (params != null)
-      jsonMessage = jsonMessage ~ params
+    params.map { p => jsonMessage = jsonMessage ~ p }
     val jsonString = compact(render(jsonMessage))
     val turntableMessage = "~m~" + jsonString.length + "~m~" + jsonString
     debug("Sending message #" + messageId + " => " + turntableMessage)
@@ -479,4 +478,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
       }
     }
   }
+  
+  implicit def tup2opt(tup: (String,String)): Option[JObject] = Some(tup)
+  implicit def jo2opt(jo: JObject): Option[JObject] = Some(jo)
 }
