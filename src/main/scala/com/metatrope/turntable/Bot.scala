@@ -91,12 +91,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   def listRooms(): List[Room] = {
     waitForResponse("room.list_rooms") { r =>
       val jRooms = (r.json \ "rooms").children
-      var rooms = Buffer[Room]()
-      jRooms.foreach(roomJson => {
-        val r = new Room(roomJson)
-        rooms += r
-      })
-      rooms.toList
+      jRooms.collect { case x => new Room(x) }
     }
   }
 
