@@ -1,10 +1,9 @@
 package com.metatrope.turntable.examples
 
 import net.liftweb.json.JsonAST._
-import com.metatrope.turntable.util.Logger
 import com.metatrope.turntable.VoteDirection
 
-class AutoNodBot extends Logger {
+class AutoNodBot {
   val auth = "you need to supply this value"
   val userId = "you need to supply this value"
 

@@ -64,7 +64,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   val commandListeners = scala.collection.mutable.Map[String, JsonPayload => Unit]()
 
   var currentRoom: Option[String] = None
-  val clientid = new Date().getTime + "-0.59633534294921572"
+  val clientid = new Date().getTime + "-" + Math.random
 
   // main message processing actor
   val messageProcessor = actorOf(new MessageProcessor).start()
