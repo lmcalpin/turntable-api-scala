@@ -112,8 +112,8 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   /**
    * Views a specified user's profile.
    */
-  def userInfo(userid: String) = {
-    waitForResponse("user.info", ("userid" -> userid)) { r => new User(r.json) }
+  def getProfile(userid: String) = {
+    waitForResponse("user.get_profile", ("userid" -> userid)) { r => new User(r.json) }
   }
 
   /**
@@ -135,6 +135,20 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   def speak(text: String) = {
     req("room.speak", ("text" -> text))
+  }
+  
+  /**
+   * Send private message.
+   */
+  def pm(recipient: String, text: String) = {
+    req("pm.send", ("receiverid" -> userid) ~ ("text" -> text))
+  }
+
+  /**
+   * Get private message history.
+   */
+  def pmHistory(recipient: String, text: String) = {
+    req("pm.history", ("receiverid" -> userid))
   }
 
   /**
@@ -327,7 +341,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    * Waits until we get a response.  Responses are associated with the
    * original sender by the 'msgid' field in the JSON payload.
    */
-  private def waitForResponse[A](api: String, params: JObject = null)(f: JsonPayload => A): A = {
+  private def waitForResponse[A](api: String, params: Option[JObject] = None)(f: JsonPayload => A): A = {
     val cd = new CountDownLatch(1)
     val fut = scala.actors.Futures.future[A] {
       var reply: Option[A] = None
@@ -337,7 +351,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
         cd.countDown
         ret
       }
-      req(api, callback = Some(callback))
+      req(api, params, callback = Some(callback))
       cd.await
       reply.get
     }
@@ -349,9 +363,11 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
    */
   private def req[T](api: String, params: Option[JObject] = None, callback: Option[JsonPayload => T] = None) = {
     val messageId = nextMessageId
-    var jsonMessage = ("api" -> api) ~ ("userid" -> userid) ~ ("clientid" -> clientid) ~ ("userauth" -> auth) ~ ("msgid" -> messageId)
-    currentRoom map { r => jsonMessage = jsonMessage ~ ("roomid" -> r) }
-    params.map { p => jsonMessage = jsonMessage ~ p }
+    var jsonMessage = ("api" -> api) ~ ("clientid" -> clientid) ~ ("userauth" -> auth) ~ ("msgid" -> messageId)
+    currentRoom map { r => jsonMessage ~= ("roomid" -> r) }
+    params.map { p => jsonMessage ~= p }
+    if ((jsonMessage \ "userid") == JNothing)
+      jsonMessage ~= ("userid" -> userid)
     val jsonString = compact(render(jsonMessage))
     val turntableMessage = "~m~" + jsonString.length + "~m~" + jsonString
     debug("Sending message #" + messageId + " => " + turntableMessage)
@@ -360,8 +376,6 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
   
   private def heartbeat(msg:String) = {
-    val messageId = nextMessageId
-    debug("Sending heartbeat #" + messageId + " => " + msg)
     wsc.send("~m~" + msg.length() + "~m~" + msg);
   }
 
@@ -392,7 +406,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
       var isOpen:Boolean = false
       def onOpen = {
         isOpen = true
-        debug("OnOpen")
+        debug("OnOpen: " + uri)
       }
       def onMessage(m:String) = {
         try {
