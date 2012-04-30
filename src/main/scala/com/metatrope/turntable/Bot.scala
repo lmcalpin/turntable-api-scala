@@ -36,13 +36,14 @@ import akka.actor.Actor
 import akka.routing.Routing._
 import scala.collection.mutable.Buffer
 import com.metatrope.turntable.VoteDirection._
-import com.metatrope.turntable.util._
+import com.metatrope.turntable.util.Logger
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.tootallnate.websocket.WebSocketClient
 import net.tootallnate.websocket.WebSocket
 import java.util.concurrent.locks.LockSupport
 import com.metatrope.turntable.Laptop._
+import scalaj.http.Http
 
 /**
  * The bot requires an authentication key (obtained when logging on to Turntable.fm
@@ -55,7 +56,6 @@ import com.metatrope.turntable.Laptop._
  */
 class Bot(auth: String, userid: String) extends Logger with JsonReader {
   """ Beep beep bzzt whirrr. """
-  val chatservers = Array("chat2.turntable.fm", "chat3.turntable.fm")
   var isConnected = false
 
   private var msgId = 0
@@ -71,9 +71,9 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
 
   // start connection
   var wsc: WebSocketClient = connect
- 
+
   // START OF BOT ACTION METHODS
-  
+
   /**
    * Go to a new room.
    */
@@ -136,7 +136,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   def speak(text: String) = {
     req("room.speak", ("text" -> text))
   }
-  
+
   /**
    * Send private message.
    */
@@ -189,42 +189,42 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   /**
    * Put the boot to the target user's derriere.
    */
-  def boot(userId:String, reason:String = "Being lame") = {
+  def boot(userId: String, reason: String = "Being lame") = {
     req("room.boot_user", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId) ~ ("reason" -> reason))
   }
 
   /**
    * Give moderator privileges to a target user.
    */
-  def addModerator(userId:String) = {
+  def addModerator(userId: String) = {
     req("room.add_moderator", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId))
   }
 
   /**
    * Remove moderator privileges from a target user.
    */
-  def remModerator(userId:String) = {
+  def remModerator(userId: String) = {
     req("room.rem_moderator", ("roomid" -> currentRoom.get) ~ ("target_userid" -> userId))
   }
 
   /**
    * Adds a song to the bot's playlist.
    */
-  def playlistAdd(name: String = "default", songId: String, index:Int = 0) = {
+  def playlistAdd(name: String = "default", songId: String, index: Int = 0) = {
     req("playlist.add", ("playlist_name" -> name) ~ ("song_dict" -> songId) ~ ("index" -> index))
   }
 
   /**
    * Removes a song from the bot's playlist.
    */
-  def playlistRemove(name: String = "default", index:Int = 0) = {
+  def playlistRemove(name: String = "default", index: Int = 0) = {
     req("playlist.remove", ("playlist_name" -> name) ~ ("index" -> index))
   }
 
   /**
    * Removes a song from the bot's playlist.
    */
-  def playlistReorder(indexFrom:Int, indexTo:Int) = {
+  def playlistReorder(indexFrom: Int, indexTo: Int) = {
     req("playlist.reorder", ("index_from" -> indexFrom) ~ ("index_to" -> indexTo))
   }
 
@@ -240,7 +240,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   private def roomNow() = { req("room.now") }
-  
+
   // END OF BOT ACTIONS METHODS
 
   // START OF EVENT LISTENERS
@@ -268,59 +268,39 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   /**
-   * Invokes f whenever someone votes a song up or down.
+   * Invokes f whenever a song stops playing.
    */
-  def onNewSong(f: Room => Unit) = {
-    val callbackWrapper: JsonPayload => Unit = { r =>
-      val x = new Room(r.json \ "room")
-      f(x)
-    }
-    commandListeners.put("newsong", callbackWrapper)
-  }
+  def onEndSong(f: Room => Unit) = commandListeners.put("endsong", roomCallbackWrapper(f))
+
+  /**
+   * Invokes f whenever no song is playing.
+   */
+  def onNoSong(f: Room => Unit) = commandListeners.put("nosong", roomCallbackWrapper(f))
+
+  /**
+   * Invokes f whenever a new song starts.
+   */
+  def onNewSong(f: Room => Unit) = commandListeners.put("newsong", roomCallbackWrapper(f))
 
   /**
    * Invokes f whenever a Dj steps up.
    */
-  def onAddDj(f: User => Unit) = {
-    val callbackWrapper: JsonPayload => Unit = { r =>
-      val x = new User(r.json \ "user")
-      f(x)
-    }
-    commandListeners.put("add_dj", callbackWrapper)
-  }
+  def onAddDj(f: User => Unit) = commandListeners.put("add_dj", userCallbackWrapper(f))
 
   /**
    * Invokes f whenever a Dj steps down.
    */
-  def onRemDj(f: User => Unit) = {
-    val callbackWrapper: JsonPayload => Unit = { r =>
-      val x = new User(r.json \ "user")
-      f(x)
-    }
-    commandListeners.put("rem_dj", callbackWrapper)
-  }
+  def onRemDj(f: User => Unit) = commandListeners.put("rem_dj", userCallbackWrapper(f))
 
   /**
    * Invokes f whenever someone enters the room.
    */
-  def onUserRegistered(f: User => Unit) = {
-    val callbackWrapper: JsonPayload => Unit = { r =>
-      val x = new User(r.json \ "user")
-      f(x)
-    }
-    commandListeners.put("registered", callbackWrapper)
-  }
+  def onUserRegistered(f: User => Unit) = commandListeners.put("registered", userCallbackWrapper(f))
 
   /**
    * Invokes f whenever someone leaves the room.
    */
-  def onUserDeregistered(f: User => Unit) = {
-    val callbackWrapper: JsonPayload => Unit = { r =>
-      val x = new User(r.json \ "user")
-      f(x)
-    }
-    commandListeners.put("deregistered", callbackWrapper)
-  }
+  def onUserDeregistered(f: User => Unit) = commandListeners.put("deregistered", userCallbackWrapper(f))
 
   /**
    * Invokes f whenever someone queues the currently playing
@@ -374,8 +354,8 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     callback map { c => messages(messageId) = c }
     wsc.send(turntableMessage)
   }
-  
-  private def heartbeat(msg:String) = {
+
+  private def heartbeat(msg: String) = {
     wsc.send("~m~" + msg.length() + "~m~" + msg);
   }
 
@@ -385,13 +365,10 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     md.digest map (b => "%02x".format(b)) mkString
   }
 
-  private def chatserver(str: String): String = {
-    var c = 0;
-    hash(str).foreach { cc =>
-      c += cc.intValue;
-    }
-    val idx = c % chatservers.size
-    return chatservers(idx)
+  private def chatserver(roomid: String): List[String] = {
+    val jsonReply = Http("http://turntable.fm/api/room.which_chatserver?roomid=" + roomid).asString
+    val resp = JsonParser.parse(jsonReply) \ "chatserver"
+    List(resp(0), resp(1))
   }
 
   private def nextMessageId: String = {
@@ -401,14 +378,14 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
 
   private def connect: WebSocketClient = {
     val selectedChatserver = chatserver(currentRoom.getOrElse(scala.math.random.toString))
-    val uri = "ws://" + selectedChatserver + ":80/socket.io/websocket"
-    val newClient = new WebSocketClient(new URI(uri)){
-      var isOpen:Boolean = false
+    val uri = "ws://" + selectedChatserver(0) + ":" + selectedChatserver(1) + "/socket.io/websocket"
+    val newClient = new WebSocketClient(new URI(uri)) {
+      var isOpen: Boolean = false
       def onOpen = {
         isOpen = true
         debug("OnOpen: " + uri)
       }
-      def onMessage(m:String) = {
+      def onMessage(m: String) = {
         try {
           val idx = m indexOf '{'
           debug("Received message: " + m)
@@ -426,10 +403,10 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
               // this is probably a heartbeat message
               val heartbeatRegex = "~m~[0-9]+~m~(~h~[0-9]+)".r
               try {
-                  val heartbeatRegex(id) = m
-                  heartbeat(id)
+                val heartbeatRegex(id) = m
+                heartbeat(id)
               } catch {
-                case e:MatchError => debug("Unexpected message: " + m)
+                case e: MatchError => debug("Unexpected message: " + m)
               }
             }
           }
@@ -437,7 +414,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
           case t => error(t)
         }
       }
-      def onError(e:Exception) = error(e)
+      def onError(e: Exception) = error(e)
       def onClose = debug("onClose")
     }
     newClient.connect
@@ -492,7 +469,17 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
       }
     }
   }
-  
-  implicit def tup2opt(tup: (String,String)): Option[JObject] = Some(tup)
+
+  implicit def tup2opt(tup: (String, String)): Option[JObject] = Some(tup)
   implicit def jo2opt(jo: JObject): Option[JObject] = Some(jo)
+
+  def roomCallbackWrapper(f: Room => Unit): JsonPayload => Unit = { r =>
+    val x = new Room(r.json \ "room")
+    f(x)
+  }
+
+  def userCallbackWrapper(f: User => Unit): JsonPayload => Unit = { r =>
+    val x = new User(r.json \ "user")
+    f(x)
+  }
 }

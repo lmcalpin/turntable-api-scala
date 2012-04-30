@@ -5,7 +5,7 @@ import com.metatrope.turntable.VoteDirection
 
 // this is just an example bot to demonstrate how to use the API
 // Turntable.FM does not allow autobop.
-class AutoNodBot {
+class AutoBopBot {
   val auth = "you need to supply this value"
   val userId = "you need to supply this value"
 
@@ -27,8 +27,8 @@ class AutoNodBot {
   }
 }
 
-object AutoNodBot {
+object AutoBopBot {
   def main(args: Array[String]) {
-    new AutoNodBot().run
+    new AutoBopBot().run
   }
 }

@@ -19,5 +19,6 @@ libraryDependencies ++= Seq(
     "se.scalablesolutions.akka" % "akka-typed-actor" % "1.2",
     "se.scalablesolutions.akka" % "akka-amqp" % "1.2",
     "se.scalablesolutions.akka" % "akka-testkit" % "1.2",
-    "se.scalablesolutions.akka" % "akka-actor" % "1.2" 
+    "se.scalablesolutions.akka" % "akka-actor" % "1.2",
+    "org.scalaj" %% "scalaj-http" % "0.3.1" 
 )
