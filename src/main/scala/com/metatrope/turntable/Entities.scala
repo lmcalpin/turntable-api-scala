@@ -28,6 +28,7 @@
 package com.metatrope.turntable
 
 import net.liftweb.json.JsonAST._
+import net.liftweb.json.Printer._
 
 trait JsonReader {
   implicit def jv2str(jv: JValue): String = if (jv == JNothing) null else jv.values.toString
@@ -39,6 +40,7 @@ class JsonPayload(val json: JValue) extends JsonReader {
 }
 
 class Room(json: JValue) extends JsonReader {
+  implicit val formats = net.liftweb.json.DefaultFormats
   val name:String = json \ "name" match {
     case x:JArray => x.children(0).asInstanceOf[JField].value
     case x => x
@@ -50,6 +52,7 @@ class Room(json: JValue) extends JsonReader {
   val currentSong: Song = new Song(json \ "metadata" \ "current_song")
   lazy val users: List[User] = readUsers
   lazy val songlog: List[Song] = readSonglog
+  val djs: List[String] = (json \\ "djs").extract[List[String]]
   private def readUsers: List[User] = {
     var jUsers = json \ "users"
     if (jUsers == JNothing)
