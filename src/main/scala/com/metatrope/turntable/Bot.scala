@@ -32,8 +32,7 @@ import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.Date
 import akka.actor.Actor._
-import akka.actor.Actor
-import akka.routing.Routing._
+import akka.actor._
 import scala.collection.mutable.Buffer
 import com.metatrope.turntable.VoteDirection._
 import com.metatrope.turntable.util.Logger
@@ -67,7 +66,9 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   val clientid = new Date().getTime + "-" + Math.random
 
   // main message processing actor
-  val messageProcessor = actorOf(new MessageProcessor).start()
+  val system = ActorSystem()
+  val messageProcessor = system.actorOf(Props(new MessageProcessor))
+  val botProcessor = system.actorOf(Props(new BotProcessor))
 
   // start connection
   var wsc: WebSocketClient = connect
@@ -366,7 +367,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
   }
 
   private def chatserver(roomid: String): List[String] = {
-    val jsonReply = Http("http://turntable.fm/api/room.which_chatserver?roomid=" + roomid).asString
+    val jsonReply:String = Http("http://turntable.fm/api/room.which_chatserver?roomid=" + roomid).asString.body
     val resp = JsonParser.parse(jsonReply) \ "chatserver"
     List(resp(0), resp(1))
   }
@@ -398,7 +399,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
             }
           } else {
             if (m == "~m~10~m~no_session") {
-              actorOf(new BotProcessor).start() ! Authenticate
+              botProcessor ! Authenticate
             } else {
               // this is probably a heartbeat message
               val heartbeatRegex = "~m~[0-9]+~m~(~h~[0-9]+)".r
@@ -422,7 +423,7 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
     newClient
   }
 
-  case class Authenticate
+  case class Authenticate()
   case class Reply(message: JsonPayload)
   case class Command(message: JsonPayload)
 
@@ -439,13 +440,13 @@ class Bot(auth: String, userid: String) extends Logger with JsonReader {
           }
           case _ => {
             // see if we registered a listener callback for this particular command
-            commandListeners.get(command) map { f => actorOf(new BotProcessor).start() ! Command(reply) }
+            commandListeners.get(command) map { f => botProcessor ! Command(reply) }
           }
         }
         // if there is a msgid, this might be a reply to a message we sent using
         // the method waitForResponse or by providing a custom callback to the req
         // method.
-        messages.get(msgid) map { f => actorOf(new BotProcessor).start() ! Reply(reply) }
+        messages.get(msgid) map { f => botProcessor ! Reply(reply) }
       }
     }
   }
